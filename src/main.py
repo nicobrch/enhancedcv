@@ -47,3 +47,57 @@ def scrape_job(state: Dict[str, Any]) -> Dict[str, Any]:
         log(f"scrape_job: ERROR: {str(e)}")
         log(f"scrape_job: State dump: {json.dumps(state, default=str)}")
         raise
+
+
+def analyze_job(state: State) -> State:
+    try:
+        log("analyze_job: starting LLM extraction")
+        prompt = """
+        Extract structured job info as JSON with fields:
+        role, company, skills, requirements, description.
+
+        Text: {job_text}
+        """
+        response = llm.invoke(prompt.format(job_text=state["job_text"]))
+        log(f"analyze_job: got response length={len(str(response))}")
+        state["job_json"] = response
+        return state
+    except Exception as e:
+        log(f"analyze_job: ERROR: {e}")
+        raise
+
+
+def adapt_resume(state: State) -> State:
+    try:
+        log(f"adapt_resume: reading resume from {state['resume_path']}")
+
+        with open(state["resume_path"], "r", encoding="utf-8") as f:
+            resume_content = f.read()
+
+        log(f"adapt_resume: base resume chars={len(resume_content)}")
+
+        prompt = f"""
+        You are given a resume in Markdown format with the following sections:
+        {resume_content}
+        
+        Job description JSON:
+        {state["job_json"]}
+
+        Adapt the resume to better fit the job description, following these instructions:
+        1. Maintain the original Markdown structure and formatting.
+        2. Emphasize the most relevant experience and skills for the job.
+        3. Keep the original language of the resume (Spanish or English).
+        4. Focus on modifying the "Personal Profile", "Experience", and "Additional Information" sections.
+        5. Do not add any new sections or remove existing ones.
+        6. Use the job description to enhance relevant details in the resume.
+        7. Return the complete adapted resume in Markdown format.
+        """
+
+        adapted_markdown = llm.invoke(prompt)
+        log(
+            f"adapt_resume: adapted Markdown chars={len(str(adapted_markdown))}")
+        state["adapted_markdown"] = str(adapted_markdown)
+        return state
+    except Exception as e:
+        log(f"adapt_resume: ERROR: {e}")
+        raise
