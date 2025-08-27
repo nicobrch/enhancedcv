@@ -4,4 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "beautifulsoup4>=4.13.5",
+    "langchain>=0.3.27",
+    "langchain-ollama>=0.3.7",
+    "langchain-openai>=0.3.32",
+    "langgraph>=0.6.6",
+]
