@@ -101,3 +101,70 @@ def adapt_resume(state: State) -> State:
     except Exception as e:
         log(f"adapt_resume: ERROR: {e}")
         raise
+
+
+def write_mrkdwn(state: State) -> State:
+    try:
+        output_md_path = "src/new_resume.md"
+
+        log(f"write_mrkdwn: writing Markdown to {output_md_path}")
+        with open(output_md_path, "w", encoding="utf-8") as f:
+            f.write(state["adapted_markdown"])
+
+        log(
+            f"write_mrkdwn: Markdown file saved successfully at {output_md_path}")
+        state["output_file"] = output_md_path
+        return state
+    except Exception as e:
+        log(f"write_mrkdwn: ERROR: {str(e)}")
+        traceback.print_exc()
+        raise
+
+
+def build_graph():
+    global app
+    log("Building state graph...")
+
+    workflow = StateGraph(State)
+
+    workflow.add_node("scraper", scrape_job)
+    workflow.add_node("analyzer", analyze_job)
+    workflow.add_node("resume_adapter", adapt_resume)
+    workflow.add_node("markdown_writer", write_mrkdwn)
+
+    workflow.add_edge(START, "scraper")
+    workflow.add_edge("scraper", "analyzer")
+    workflow.add_edge("analyzer", "resume_adapter")
+    workflow.add_edge("resume_adapter", "markdown_writer")
+    workflow.add_edge("markdown_writer", END)
+
+    app = workflow.compile()
+
+
+def main():
+    url = ""
+    resume_path = "src/resume.md"
+
+    build_graph()
+
+    initial_state = {
+        "url": url,
+        "resume_path": resume_path
+    }
+
+    log(f"main: initial_state type: {type(initial_state)}")
+    log(f"main: initial_state contains: {json.dumps(initial_state)}")
+    log(f"main: invoking graph with url={url} resume_path={resume_path}")
+
+    try:
+        app.invoke(initial_state)
+        log("main: graph completed successfully")
+    except Exception:
+        log("main: ERROR during graph invocation")
+        traceback.print_exc()
+        raise
+
+
+if __name__ == "__main__":
+    app = None
+    main()
