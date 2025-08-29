@@ -9,5 +9,5 @@ wheels/
 # Virtual environments
 .venv
 
-# CV files
-src/*.md
+# Environment variables
+.env
